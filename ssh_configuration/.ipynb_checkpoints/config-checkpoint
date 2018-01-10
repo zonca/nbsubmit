@@ -1,0 +1,7 @@
+Host comet.sdsc.edu
+# reuse the first SSH connection
+ControlMaster auto
+# even if first connection is closed wait a number of seconds
+ControlPersist 3600
+# need to create the ~/.ssh/sockets folder
+ControlPath ~/.ssh/sockets/%r@%h-%p
