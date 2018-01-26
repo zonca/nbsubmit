@@ -1,0 +1,6 @@
+[33mWARNING: Non existent bind point (directory) in container: '/projects'
+[0m[33mWARNING: Non existent bind point (directory) in container: '/scratch'
+[0m[33mWARNING: Not mounting requested bind point (already mounted in container): /oasis
+[0m[NbConvertApp] Converting notebook job.ipynb to notebook
+[NbConvertApp] Executing notebook with kernel: python3
+[NbConvertApp] Writing 14148 bytes to executed_13973776_job.ipynb

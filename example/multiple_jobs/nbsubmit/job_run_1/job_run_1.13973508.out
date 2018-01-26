@@ -1,0 +1,7 @@
+/var/spool/slurmd/job13973508/slurm_script: line 16: None: command not found
+[33mWARNING: Non existent bind point (directory) in container: '/projects'
+[0m[33mWARNING: Non existent bind point (directory) in container: '/scratch'
+[0m[33mWARNING: Not mounting requested bind point (already mounted in container): /oasis
+[0m[NbConvertApp] Converting notebook job.ipynb to notebook
+[NbConvertApp] Executing notebook with kernel: python3
+[NbConvertApp] Writing 14699 bytes to executed_13973508_job.ipynb
