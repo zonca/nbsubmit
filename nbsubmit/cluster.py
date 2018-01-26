@@ -4,7 +4,8 @@ from pathlib import Path
 
 def create_environment_variables(variables):
     """Create bash env variables from dict"""
-    return "\n".join("export {}={}".format(k,v) for k,v in variables.items())
+    if variables is not None:
+        return "\n".join("export {}={}".format(k,v) for k,v in variables.items())
 
 def run_command(cmd):
     try:
