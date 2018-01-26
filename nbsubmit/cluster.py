@@ -54,7 +54,7 @@ class Cluster:
         called_process = run_command(["ssh", self.host] + cmd)
         return called_process
 
-    def launch_job(self, job_name, notebook, environment=None, cores=1, hours=1, singularity_image=None):
+    def launch_job(self, job_name, notebook, environment=None, cores=1, hours=1, singularity_image=None, additional_files=[]):
 
         local_job_folder = self.local_base_path / job_name
         os.makedirs(local_job_folder, exist_ok=True)
@@ -73,7 +73,7 @@ class Cluster:
                                          bind=self.bind)
             )
 
-        self.put([notebook, job_cmd_path], job_name)
+        self.put([notebook, job_cmd_path] + additional_files, job_name)
 
         remote_job_folder = f"{self.basepath}/{job_name}"
 
