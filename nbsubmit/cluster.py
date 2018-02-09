@@ -4,7 +4,9 @@ from pathlib import Path
 
 def create_environment_variables(variables):
     """Create bash env variables from dict"""
-    if variables is not None:
+    if variables is None:
+        return ""
+    else:
         return "\n".join("export {}={}".format(k,v) for k,v in variables.items())
 
 def run_command(cmd):
@@ -24,7 +26,6 @@ def scp(source, dest):
 
 class Cluster:
 
-    basepath = Path("~/nbsubmit")
     local_base_path = Path("./nbsubmit")
 
     def __init__(self, name, host, singularity_image, bind,
@@ -50,7 +51,7 @@ class Cluster:
         print("Connection successful")
 
         # mount-related options
-        self.remote_filesystem_path = remote_filesystem_path.format(username=self.remote_username)
+        self.remote_filesystem_path = Path(remote_filesystem_path.format(username=self.remote_username))
         self.local_mount_point = Path.home() / Path(self.name)
 
     def print_available_resources(self):
@@ -62,7 +63,7 @@ class Cluster:
         if self.is_mounted():
             print(f"Remote filesystem already mounted to {self.local_mount_point}")
         else:
-            run_command(["mkdir", "-p", self.local_mount_point])
+            os.makedirs(self.local_mount_point, exist_ok=True)
             run_command(["sshfs", "-o", "reconnect",
                 self.host+":"+self.remote_filesystem_path, self.local_mount_point])
             print(f"Mounted {self.host}:{self.remote_filesystem_path} to {self.local_mount_point}")
@@ -76,14 +77,15 @@ class Cluster:
             print(f"Unmounted {self.local_mount_point}")
 
     def put(self, filenames, job_name):
-        remote_job_folder = self.basepath / job_name
+        remote_job_folder = self.remote_filesystem_path / "nbsubmit" / job_name
         self.ssh_command(["mkdir", "-p", remote_job_folder])
         scp(filenames, f"{self.host}:{remote_job_folder}")
 
     def get(self, filenames, job_name):
         filenames_string = " ".join(filenames)
         local_job_folder = self.local_base_path / job_name
-        scp([f"{self.host}:{self.basepath}/{job_name}/{filenames_string}"], local_job_folder)
+        remote_job_folder = self.remote_filesystem_path / "nbsubmit" / job_name
+        scp([f"{self.host}:{remote_job_folder}"], local_job_folder)
 
     def ssh_command(self, cmd):
         called_process = run_command(["ssh", self.host] + cmd)
@@ -110,9 +112,9 @@ class Cluster:
 
         self.put([notebook, job_cmd_path] + additional_files, job_name)
 
-        remote_job_folder = f"{self.basepath}/{job_name}"
+        remote_job_folder = self.remote_filesystem_path / "nbsubmit" / job_name
 
-        submit_call = self.ssh_command(["cd", remote_job_folder + ";"] + \
+        submit_call = self.ssh_command(["cd", str(remote_job_folder) + ";"] + \
                           self.submit + ["job.cmd"])
         job_id = submit_call.stdout.strip().split()[-1]
         print(f"Submitted job {job_name} to {self.name}")
@@ -127,7 +129,11 @@ class Cluster:
         return check_call.stdout.strip().split("\n")[0].strip()
 
     def retrieve_results(self, job_name):
-        self.get("*", job_name)
+        if self.is_mounted():
+            print(f"No need to retrieve results "
+                  f"You can access the files locally in the {self.local_mount_point}/nbsubmit folder")
+        else:
+            self.get("*", job_name)
 
 
 class SlurmCluster(Cluster):
