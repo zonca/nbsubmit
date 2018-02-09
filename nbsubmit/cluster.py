@@ -59,14 +59,21 @@ class Cluster:
                   "{:.1f} GB RAM".format(self.ram_per_node_gb / self.cores_per_node * i))
 
     def mount(self):
-        run_command(["mkdir", "-p", self.local_mount_point])
-        run_command(["sshfs", "-o", "reconnect",
-            self.host+":"+self.remote_filesystem_path, self.local_mount_point])
-        print(f"Mounted {self.host}:{self.remote_filesystem_path} to {self.local_mount_point}")
+        if self.is_mounted():
+            print(f"Remote filesystem already mounted to {self.local_mount_point}")
+        else:
+            run_command(["mkdir", "-p", self.local_mount_point])
+            run_command(["sshfs", "-o", "reconnect",
+                self.host+":"+self.remote_filesystem_path, self.local_mount_point])
+            print(f"Mounted {self.host}:{self.remote_filesystem_path} to {self.local_mount_point}")
+
+    def is_mounted(self):
+        return str(Path.home()) in run_command(["mount", "-l", "-t", "fuse.sshfs"]).stdout
 
     def unmount(self):
-        run_command(["fusermount", "-u", self.local_mount_point])
-        print(f"Unmounted {self.local_mount_point}")
+        if self.is_mounted():
+            run_command(["fusermount", "-u", self.local_mount_point])
+            print(f"Unmounted {self.local_mount_point}")
 
     def put(self, filenames, job_name):
         remote_job_folder = self.basepath / job_name
