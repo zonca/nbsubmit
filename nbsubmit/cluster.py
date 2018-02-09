@@ -28,8 +28,10 @@ class Cluster:
     local_base_path = Path("./nbsubmit")
 
     def __init__(self, name, host, singularity_image, bind,
-            ram_per_node_gb, cores_per_node, queue, shared_queue):
+            ram_per_node_gb, cores_per_node, queue, shared_queue,
+            remote_filesystem_path):
         self.name = name
+        assert " " not in self.name, "A cluster name should not contain spaces"
         self.host = host
         self.singularity_image = singularity_image
         self.bind = bind
@@ -38,17 +40,33 @@ class Cluster:
         self.queue = queue
         self.shared_queue = shared_queue
 
-        print("Test connection")
+        print(f"Test connection to {self.host}")
         try:
             self.remote_username = self.ssh_command(["whoami"]).stdout.strip()
         except:
             print(f"SSH connection to {self.host} failed, you need to setup"
                    "either passwordless SSH or ControlMaster and login from a terminal")
             raise
+        print("Connection successful")
+
+        # mount-related options
+        self.remote_filesystem_path = remote_filesystem_path.format(username=self.remote_username)
+        self.local_mount_point = Path.home() / Path(self.name)
 
     def print_available_resources(self):
         for i in range(1, 1+self.cores_per_node):
-            print(i, "cores:", "{:.1f} GB RAM".format(self.ram_per_node_gb / self.cores_per_node * i))
+            print(i, "core{}:".format("s" if i>1 else ""),
+                  "{:.1f} GB RAM".format(self.ram_per_node_gb / self.cores_per_node * i))
+
+    def mount(self):
+        run_command(["mkdir", "-p", self.local_mount_point])
+        run_command(["sshfs", "-o", "reconnect",
+            self.host+":"+self.remote_filesystem_path, self.local_mount_point])
+        print(f"Mounted {self.host}:{self.remote_filesystem_path} to {self.local_mount_point}")
+
+    def unmount(self):
+        run_command(["fusermount", "-u", self.local_mount_point])
+        print(f"Unmounted {self.local_mount_point}")
 
     def put(self, filenames, job_name):
         remote_job_folder = self.basepath / job_name
@@ -134,15 +152,16 @@ singularity exec $SINGULARITY_IMAGE $COMMAND
     submit = ["sbatch"]
     monitor = ["sacct", "--noheader", "--format", "State", "--jobs"]
 
-clusters = dict(
-comet = SlurmCluster(
-            name = "Comet",
-            host = "comet.sdsc.edu",
-            singularity_image = "/oasis/scratch/comet/zonca/temp_project/ubuntu_anaconda.img",
-            bind = "/oasis",
-            ram_per_node_gb=128,
-            cores_per_node=24,
-            queue="compute",
-            shared_queue="shared"
-        )
-)
+def get(cluster_name):
+    if cluster_name == "comet":
+        return SlurmCluster(
+                    name = "comet",
+                    host = "comet.sdsc.edu",
+                    singularity_image = "/oasis/scratch/comet/zonca/temp_project/ubuntu_anaconda.img",
+                    bind = "/oasis",
+                    ram_per_node_gb=128,
+                    cores_per_node=24,
+                    queue="compute",
+                    shared_queue="shared",
+                    remote_filesystem_path="/oasis/scratch/comet/{username}/temp_project"
+               )
