@@ -27,7 +27,8 @@ class Cluster:
     basepath = Path("~/nbsubmit")
     local_base_path = Path("./nbsubmit")
 
-    def __init__(self, name, host, singularity_image, bind, ram_per_node_gb, cores_per_node, queue, shared_queue):
+    def __init__(self, name, host, singularity_image, bind,
+            ram_per_node_gb, cores_per_node, queue, shared_queue):
         self.name = name
         self.host = host
         self.singularity_image = singularity_image
@@ -36,6 +37,14 @@ class Cluster:
         self.cores_per_node = cores_per_node
         self.queue = queue
         self.shared_queue = shared_queue
+
+        print("Test connection")
+        try:
+            self.remote_username = self.ssh_command(["whoami"]).stdout.strip()
+        except:
+            print(f"SSH connection to {self.host} failed, you need to setup"
+                   "either passwordless SSH or ControlMaster and login from a terminal")
+            raise
 
     def print_available_resources(self):
         for i in range(1, 1+self.cores_per_node):
