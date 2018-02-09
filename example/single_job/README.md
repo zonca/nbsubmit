@@ -18,8 +18,8 @@ Notebook to launch the job and monitor it.
 
 Here an example session.
 
-    from nbsubmit import clusters
-    comet = clusters["comet"]
+    from nbsubmit import cluster
+    comet = cluster.get("comet")
 
 Comet is a resource already configured, we assume that the user has already an allocation
 on Comet and SSH certificates set to login without a password or use `ControlMaster` (see the `ssh_configuration` folder)
