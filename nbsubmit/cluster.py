@@ -11,7 +11,7 @@ def create_environment_variables(variables):
 
 def run_command(cmd):
     try:
-        return subprocess.run(cmd,
+        return subprocess.run(map(str, cmd),
             stderr=subprocess.PIPE,
             stdout=subprocess.PIPE,
             check=True, timeout=60, encoding="utf-8")
@@ -52,7 +52,7 @@ class Cluster:
 
         # mount-related options
         self.remote_filesystem_path = Path(remote_filesystem_path.format(username=self.remote_username))
-        self.local_mount_point = Path.home() / Path(self.name)
+        self.local_mount_point = Path.home() / self.name
 
     def print_available_resources(self):
         for i in range(1, 1+self.cores_per_node):
@@ -65,7 +65,7 @@ class Cluster:
         else:
             os.makedirs(self.local_mount_point, exist_ok=True)
             run_command(["sshfs", "-o", "reconnect",
-                self.host+":"+self.remote_filesystem_path, self.local_mount_point])
+                f"{self.host}:{self.remote_filesystem_path}", self.local_mount_point])
             print(f"Mounted {self.host}:{self.remote_filesystem_path} to {self.local_mount_point}")
 
     def is_mounted(self):
@@ -76,16 +76,19 @@ class Cluster:
             run_command(["fusermount", "-u", self.local_mount_point])
             print(f"Unmounted {self.local_mount_point}")
 
+    def remote_job_folder(self, job_name):
+        return self.remote_filesystem_path / "nbsubmit" / job_name
+
     def put(self, filenames, job_name):
-        remote_job_folder = self.remote_filesystem_path / "nbsubmit" / job_name
+        remote_job_folder = self.remote_job_folder(job_name)
         self.ssh_command(["mkdir", "-p", remote_job_folder])
         scp(filenames, f"{self.host}:{remote_job_folder}")
 
     def get(self, filenames, job_name):
         filenames_string = " ".join(filenames)
-        local_job_folder = self.local_base_path / job_name
-        remote_job_folder = self.remote_filesystem_path / "nbsubmit" / job_name
-        scp([f"{self.host}:{remote_job_folder}"], local_job_folder)
+        local_job_folder = str(self.local_base_path / job_name)
+        remote_job_folder = self.remote_job_folder(job_name)
+        scp([f"{self.host}:{remote_job_folder}/{filenames_string}"], local_job_folder)
 
     def ssh_command(self, cmd):
         called_process = run_command(["ssh", self.host] + cmd)
@@ -112,21 +115,29 @@ class Cluster:
 
         self.put([notebook, job_cmd_path] + additional_files, job_name)
 
-        remote_job_folder = self.remote_filesystem_path / "nbsubmit" / job_name
+        remote_job_folder = self.remote_job_folder(job_name)
 
-        submit_call = self.ssh_command(["cd", str(remote_job_folder) + ";"] + \
+        submit_call = self.ssh_command(["cd", f"{remote_job_folder};"] + \
                           self.submit + ["job.cmd"])
         job_id = submit_call.stdout.strip().split()[-1]
         print(f"Submitted job {job_name} to {self.name}")
         with open(local_job_folder / "LAST_JOB_ID", "w") as f:
             f.write(job_id)
 
-    def check_job(self, job_name):
+    def get_job_id(self, job_name):
         job_id_file = self.local_base_path / job_name / "LAST_JOB_ID"
         with open(job_id_file, "r") as f:
-            job_id = f.read().strip()
+            return f.read().strip()
+
+    def check_job(self, job_name):
+        job_id = self.get_job_id(job_name)
         check_call = self.ssh_command(self.monitor + [job_id])
         return check_call.stdout.strip().split("\n")[0].strip()
+
+    def cancel_job(self, job_name):
+        job_id = self.get_job_id(job_name)
+        check_call = self.ssh_command(self.cancel + [job_id])
+        self.check_job(job_name)
 
     def retrieve_results(self, job_name):
         if self.is_mounted():
@@ -164,6 +175,7 @@ singularity exec $SINGULARITY_IMAGE $COMMAND
 """
     submit = ["sbatch"]
     monitor = ["sacct", "--noheader", "--format", "State", "--jobs"]
+    cancel = ["scancel"]
 
 def get(cluster_name):
     if cluster_name == "comet":
