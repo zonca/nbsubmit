@@ -14,6 +14,12 @@ large amount of medium-sized dataset.
 You need access to a large amount of memory and disk, therefore you would like to
 use a Supercomputer you already have access to. For example Comet at the San Diego Supercomputer Center.
 
+## Installation
+
+Install from pypi:
+
+    pip install nbsubmit
+
 ## How it works
 
 This package takes care of copying the Notebook to the Supercomputer, prepare a SLURM
