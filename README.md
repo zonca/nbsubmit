@@ -33,6 +33,33 @@ and then point the Notebook to that folder.
 Same for the output files, you can save and automatically retrieve small files located in the same folder
 as the Notebook. Save instead large files on your SCRATCH space and copy them with Globus Online.
 
+## Mount a remote filesystem
+
+It can be convenient to mount the filesystem locally so that we do not need to copy the results of our computation
+back to the local machine.
+
+`nbsubmit` provides some convenience functions to simplify this. However it is necessary to first setup a
+multiplexed SSH connection, so that you can interactively start a SSH connection and authenticate just once,
+for example this is feasible also when the Supercomputer requires 2 factor authentication.
+
+In order to configure this, you need to copy into your `.ssh/config` the configuration available in `ssh_configuration/config`.
+
+Then before using `nbsubmit`, open a terminal on your local machine and access the target Supercomputer via SSH
+and leave that terminal open.
+
+Then we can mount the filesystem locally with:
+
+```
+> from nbsubmit import cluster
+> comet = cluster.get("comet")
+> comet.mount()
+Mounted comet.sdsc.edu:/oasis/scratch/comet/zonca/temp_project to /home/zonca/comet
+> !df -h | tail -1
+comet.sdsc.edu:/oasis/scratch/comet/zonca/temp_project  2.5P  2.3P  240T  91% /home/zonca/comet
+```
+
+See `example/mounted_filesystem` for a complete example.
+
 ## Examples
 
 See the `examples/` folder for example Notebooks and more documentation.
