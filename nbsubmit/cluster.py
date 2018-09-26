@@ -45,8 +45,8 @@ class Cluster:
         try:
             self.remote_username = self.ssh_command(["whoami"]).stdout.strip()
         except:
-            print("SSH connection to {} failed, you need to setup".format(self.host)
-                   "either passwordless SSH or ControlMaster and login from a terminal")
+            print("SSH connection to {} failed, you need to setup".format(self.host) + \
+                   " either passwordless SSH or ControlMaster and login from a terminal")
             raise
         print("Connection successful")
 
@@ -141,7 +141,7 @@ class Cluster:
 
     def retrieve_results(self, job_name):
         if self.is_mounted():
-            print("No need to retrieve results "
+            print("No need to retrieve results " + \
                   "You can access the files locally in the {}/nbsubmit folder".format(self.local_mount_point))
         else:
             self.get("*", job_name)
