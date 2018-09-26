@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="nbsubmit",
-    version="0.1",
+    version="0.2",
     packages=find_packages(),
     author="Andrea Zonca",
     author_email="code@andreazonca.com",
