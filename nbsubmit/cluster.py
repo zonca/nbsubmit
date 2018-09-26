@@ -41,11 +41,11 @@ class Cluster:
         self.queue = queue
         self.shared_queue = shared_queue
 
-        print(f"Test connection to {self.host}")
+        print("Test connection to {}".format(self.host))
         try:
             self.remote_username = self.ssh_command(["whoami"]).stdout.strip()
         except:
-            print(f"SSH connection to {self.host} failed, you need to setup"
+            print("SSH connection to {} failed, you need to setup".format(self.host)
                    "either passwordless SSH or ControlMaster and login from a terminal")
             raise
         print("Connection successful")
@@ -61,12 +61,12 @@ class Cluster:
 
     def mount(self):
         if self.is_mounted():
-            print(f"Remote filesystem already mounted to {self.local_mount_point}")
+            print("Remote filesystem already mounted to {}".format(self.local_mount_point))
         else:
             os.makedirs(self.local_mount_point, exist_ok=True)
             run_command(["sshfs", "-o", "reconnect",
-                f"{self.host}:{self.remote_filesystem_path}", self.local_mount_point])
-            print(f"Mounted {self.host}:{self.remote_filesystem_path} to {self.local_mount_point}")
+                "{}:{}".format(self.host, self.remote_filesystem_path), self.local_mount_point])
+            print("Mounted {}:{} to {}".format(self.host, self.remote_filesystem_path, self.local_mount_point))
 
     def is_mounted(self):
         return str(Path.home()) in run_command(["mount", "-l", "-t", "fuse.sshfs"]).stdout
@@ -74,7 +74,7 @@ class Cluster:
     def unmount(self):
         if self.is_mounted():
             run_command(["fusermount", "-u", self.local_mount_point])
-            print(f"Unmounted {self.local_mount_point}")
+            print("Unmounted {}".format(self.local_mount_point))
 
     def remote_job_folder(self, job_name):
         return self.remote_filesystem_path / "nbsubmit" / job_name
@@ -82,13 +82,13 @@ class Cluster:
     def put(self, filenames, job_name):
         remote_job_folder = self.remote_job_folder(job_name)
         self.ssh_command(["mkdir", "-p", remote_job_folder])
-        scp(filenames, f"{self.host}:{remote_job_folder}")
+        scp(filenames, "{}:{}".format(self.host, remote_job_folder))
 
     def get(self, filenames, job_name):
         filenames_string = " ".join(filenames)
         local_job_folder = str(self.local_base_path / job_name)
         remote_job_folder = self.remote_job_folder(job_name)
-        scp([f"{self.host}:{remote_job_folder}/{filenames_string}"], local_job_folder)
+        scp(["{}:{}/{}".format(self.host,remote_job_folder,filenames_string)], local_job_folder)
 
     def ssh_command(self, cmd):
         called_process = run_command(["ssh", self.host] + cmd)
@@ -117,10 +117,10 @@ class Cluster:
 
         remote_job_folder = self.remote_job_folder(job_name)
 
-        submit_call = self.ssh_command(["cd", f"{remote_job_folder};"] + \
+        submit_call = self.ssh_command(["cd", "{};".format(remote_job_folder)] + \
                           self.submit + ["job.cmd"])
         job_id = submit_call.stdout.strip().split()[-1]
-        print(f"Submitted job {job_name} to {self.name}")
+        print("Submitted job {} to {}".format(job_name, self.name))
         with open(local_job_folder / "LAST_JOB_ID", "w") as f:
             f.write(job_id)
 
@@ -141,8 +141,8 @@ class Cluster:
 
     def retrieve_results(self, job_name):
         if self.is_mounted():
-            print(f"No need to retrieve results "
-                  f"You can access the files locally in the {self.local_mount_point}/nbsubmit folder")
+            print("No need to retrieve results "
+                  "You can access the files locally in the {}/nbsubmit folder".format(self.local_mount_point))
         else:
             self.get("*", job_name)
 
